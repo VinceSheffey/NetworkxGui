@@ -1,0 +1,178 @@
+""" AUTHOR:VARLIN SHEFFEY """
+
+# main.py
+from appJar import gui
+from os import path
+import os
+import networkx as nx
+import GEDalgos
+import gmatch4py as gm
+import matplotlib.pyplot as plt
+
+
+# Example of a semi-structured application
+class MyApplication():
+
+    # Build the GUI
+    def Prepare(self, app):
+        app.showSplash("Welcome to the NetworkX Graph Edit GUI!", fill='#cce5ff', stripe='black', fg='white', font=44)
+        # Form GUI
+        app.setSize(1200, 800)
+        app.setSticky(sticky="news")
+        app.setTitle("NetworkX GUI!")
+        app.setFont(16)
+        app.setBg('#4da6ff')
+        app.setStopFunction(self.BeforeExit)
+
+        # Add labels & entries
+        # in the correct row & column
+        """Top Frame"""
+        # application Titile and author
+
+        app.addLabel('applicationTitle', "Welcome to my NetworkX GUI! Please enter your graphs below!", 1, colspan=3)
+        app.addLabel('author', " Powered By GMatch4py", 2, colspan=3)
+        app.setLabelBg("applicationTitle", "#cce5ff")
+        app.setLabelBg("author", "#cce5ff")
+
+        app.setLabelFont('applicationTitle', size=28)
+        app.setLabelFont('author', size=24)
+        """ Middle Frame """
+        app.startLabelFrame("File Input: ", column=0, colspan=3)
+        app.addLabel("graphLabel1", "Enter Graph 1:", 4, 0)
+        # app.setLabelBg("graphLabel1", "#cce5ff")
+        app.addFileEntry("graph1", 4, 1, 2)
+        app.addLabel("graphLabel2", "Enter Graph 2:", 5, 0)
+        # app.setLabelBg("graphLabel2", "#cce5ff")
+        app.addFileEntry("graph2", 5, 1, 2)
+        app.stopLabelFrame()
+
+        """ ATTRIBUTED/NON ATTRIBUTED"""
+        app.startLabelFrame("Set type: ", 5, 0, 1)
+        # app.addLabel("setAtrr:", "Set Attributed:", 5, 0)
+        app.addRadioButton("type", "Non-Attributed", 6, 1)
+        app.addRadioButton("type", "Attributed", 7, 1)
+        app.stopLabelFrame()
+
+        app.startLabelFrame("Set Edit Cost:", 5, 1, 2)
+        # app.addLabel("SetEditCost:", "Set Edit Cost:", 6, 0)
+        app.addLabelOptionBox("Delete Vertex/Node:", ["0", "1", "2", "3", "4", "5", "6"], 6, 1)
+        app.addLabelOptionBox("Add A Vertex/Node:", ["0", "1", "2", "3", "4", "5", "6"], 7, 1)
+        app.addLabelOptionBox("Delete An Edge:", ["0", "1", "2", "3", "4", "5", "6"], 6, 2)
+        app.addLabelOptionBox("Add An Edge:", ["0", "1", "2", "3", "4", "5", "6"], 7, 2)
+
+        app.addButtons(["Submit", "Cancel"], self.Submit, 8, 2)
+        app.stopLabelFrame()
+
+        app.startLabelFrame("Output", 9, 0, 3)
+        app.setBg("#ffffff")
+        app.addLabel("Ground Truth Graph:", row=10, column=0)
+        app.addEmptyMessage("GTGInfo:", row=11, column=0)
+        app.addLabel("Input Graph:", row=10, column=1)
+        app.addEmptyMessage("InputInfo:", row=11, column=1)
+        app.stopLabelFrame()
+        return app
+
+    # Build and Start your application
+    def Start(self):
+        # Creates a UI
+        app = gui()
+
+        # Run the pre-build method that adds items to the UI
+        app = self.Prepare(app)
+
+        # Make the app class-accessible
+        self.app = app
+
+        # Start appJar
+        app.go()
+
+    # Callback execute before quitting  app
+    def BeforeExit(self):
+        return self.app.yesNoBox("Confirm Exit", "Are you sure you want to exit the application?")
+
+    # Define method that is executed when the user clicks on the submit buttons
+    # check if file exist
+    # Check File Type. Networkx only takes with certain extensions
+    # Types to add JSON, Txt, GML, LEDA, YAML, GEXF
+    def Submit(self, btnName):
+        if btnName == "Submit":
+            graph1 = self.app.getEntry("graph1")
+            name, extension = os.path.splitext(graph1)
+            goON = True
+            goON2 = True
+            if extension not in [".txt", ".xml", ".json"]:
+                self.app.errorBox("Error Uploading Graph 1", "Program does not support this filetype for Graph!")
+                goON = False
+            graph2 = self.app.getEntry("graph2")
+            name, extension = os.path.splitext(graph2)
+            if extension not in [".txt", ".xml", ".json"]:
+                self.app.errorBox("Error Uploading Graph 2", "Program does not support this filetype for Graph!")
+                goON2 = False
+            btnType = self.app.getRadioButton("type")
+            sG1 = str(graph1)
+            sG2 = str(graph2)
+
+        print(sG1)
+        print(sG2)
+        print(btnType)
+
+        if goON != False and goON2 != False:
+            if btnName != None:
+                if path.exists(sG1) and path.exists(sG2) == True:
+                    self.app.infoBox("Graphs Uploaded", "Uploading! " + graph1 + " and " + graph2)
+                    # appjartest.launch(self, sG1, sG2, btnType)
+
+                    ### CONVERT GRAPH TO ACTUAL GRAPH
+                    file1 = open(graph1, 'rb')
+                    g1 = nx.read_edgelist(file1, create_using=nx.Graph(), nodetype=int)
+                    print(nx.info(g1))
+
+                    file2 = open(graph2, 'rb')
+                    g2 = nx.read_edgelist(file2, create_using=nx.Graph(), nodetype=int)
+                    print(nx.info(g2))
+
+                    ###MAKE A NEW FUNCTION DUDED!!!
+                    """"Bottom FRAME """
+                    self.app.setFont(20)
+
+                    self.app.setMessage("GTGInfo:",
+                                        " " + nx.info(g1))
+                    self.app.setMessage("InputInfo:",
+                                        " " + nx.info(g2))
+                    deleteV = self.app.getOptionBox("Delete Vertex/Node:")
+                    addV = self.app.getOptionBox("Add A Vertex/Node:")
+                    deleteE = self.app.getOptionBox("Delete An Edge:")
+                    addE = self.app.getOptionBox("Add An Edge:")
+
+                    dv = int(deleteV)
+                    av = int(addV)
+                    de = int(deleteE)
+                    ae = int(addE)
+
+                    gedMatrix = GEDalgos.GEDx(g1, g2, dv, av, de, ae)
+                    disMatrix = GEDalgos.GEDxbyDistance(g1, g2, dv, av, de, ae)
+                    simMatrix = GEDalgos.GEDxbySimilarity(g1, g2, dv, av, de, ae)
+                    mcsMatrix = GEDalgos.MCSX(g1, g2)
+
+                    self.app.addTable("g2",
+                                      [["Raw Result ", "Normalized by Sim.", "Normalized By Dist", "MCS"],
+                                       [gedMatrix[0][1],
+                                        disMatrix[0][1],
+                                        simMatrix[0][1],
+                                        mcsMatrix[0][1]]], colspan=3)
+
+
+            else:
+                self.app.errorBox("Error",
+                                  "Please re-input files to compare! Note: You must submit two graphs to compare!")
+        else:
+            self.app.errorBox("Error", "Please select Attributed or Non-Attributed!")
+
+
+# Run the application
+# `python main.py`
+if __name__ == '__main__':
+    # Create an instance of your application
+    App = MyApplication()
+    # Start your app !
+    App.Start()
